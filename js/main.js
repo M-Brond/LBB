@@ -8,17 +8,17 @@ async function loadPosts() {
     }
 
     try {
-        // Direct fetch of specific markdown files since we know their names
+        // Using the raw GitHub content URL with only the current post
+        const baseUrl = 'https://raw.githubusercontent.com/M-Brond/LBB/main/posts/';
         const posts = [
-            'posts/2024-10-29-wedding-speech.md',
-            'posts/first-post.md'
+            '2024-10-29-mylove.md'  // Updated to match your current post file
         ];
 
-        for (const postPath of posts) {
+        for (const postName of posts) {
             try {
-                const response = await fetch(postPath);
+                const response = await fetch(baseUrl + postName);
                 if (!response.ok) {
-                    console.error(`Failed to load ${postPath}`);
+                    console.error(`Failed to load ${postName}`);
                     continue;
                 }
                 
@@ -29,7 +29,7 @@ async function loadPosts() {
                 
                 // Parse front matter if it exists
                 let content = text;
-                let title = postPath.split('/').pop().replace('.md', '').replace(/-/g, ' ');
+                let title = postName.replace('.md', '').replace(/-/g, ' ');
                 
                 if (text.startsWith('---')) {
                     const frontMatterEnd = text.indexOf('---', 3);
@@ -56,9 +56,9 @@ async function loadPosts() {
                 postElement.appendChild(contentElement);
                 
                 postsContainer.appendChild(postElement);
-                console.log(`Successfully loaded ${postPath}`);
+                console.log(`Successfully loaded ${postName}`);
             } catch (error) {
-                console.error(`Error loading ${postPath}:`, error);
+                console.error(`Error loading ${postName}:`, error);
             }
         }
 
