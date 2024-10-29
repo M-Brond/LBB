@@ -1,8 +1,3 @@
-// Ensure marked is available
-if (typeof marked === 'undefined') {
-    console.error('Marked library is not loaded!');
-}
-
 async function loadPosts() {
     console.log('Starting to load posts...'); // Debug log
     const postsContainer = document.getElementById('posts-container');
@@ -13,71 +8,70 @@ async function loadPosts() {
     }
 
     try {
-        const username = 'M-Brond';
-        const repo = 'LBB';
-        
-        console.log(`Fetching posts from https://api.github.com/repos/${username}/${repo}/contents/posts`);
-        
-        const response = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/posts`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const files = await response.json();
-        console.log('Found files:', files); // Debug log
+        // Direct fetch of specific markdown files since we know their names
+        const posts = [
+            'posts/2024-10-29-wedding-speech.md',
+            'posts/first-post.md'
+        ];
 
-        if (files.length === 0) {
-            postsContainer.innerHTML = '<p>No posts found in the posts directory.</p>';
-            return;
-        }
-
-        for (const file of files) {
-            if (file.name.endsWith('.md')) {
-                console.log(`Loading post: ${file.name}`); // Debug log
-                
-                const postContent = await fetch(file.download_url);
-                if (!postContent.ok) {
-                    console.error(`Failed to load ${file.name}`);
+        for (const postPath of posts) {
+            try {
+                const response = await fetch(postPath);
+                if (!response.ok) {
+                    console.error(`Failed to load ${postPath}`);
                     continue;
                 }
                 
-                const text = await postContent.text();
+                const text = await response.text();
                 
                 const postElement = document.createElement('article');
                 postElement.className = 'post';
                 
-                // Add a title based on the filename
+                // Parse front matter if it exists
+                let content = text;
+                let title = postPath.split('/').pop().replace('.md', '').replace(/-/g, ' ');
+                
+                if (text.startsWith('---')) {
+                    const frontMatterEnd = text.indexOf('---', 3);
+                    if (frontMatterEnd !== -1) {
+                        const frontMatter = text.slice(3, frontMatterEnd);
+                        content = text.slice(frontMatterEnd + 3);
+                        // Extract title from front matter if it exists
+                        const titleMatch = frontMatter.match(/title:\s*"(.+)"/);
+                        if (titleMatch) {
+                            title = titleMatch[1];
+                        }
+                    }
+                }
+                
+                // Add title
                 const titleElement = document.createElement('h3');
-                titleElement.textContent = file.name.replace('.md', '').replace(/-/g, ' ');
+                titleElement.textContent = title;
                 postElement.appendChild(titleElement);
                 
-                // Add the content
+                // Add content
                 const contentElement = document.createElement('div');
                 contentElement.className = 'post-content';
-                contentElement.innerHTML = marked.parse(text);
+                contentElement.innerHTML = marked.parse(content);
                 postElement.appendChild(contentElement);
                 
                 postsContainer.appendChild(postElement);
-                console.log(`Successfully loaded ${file.name}`); // Debug log
+                console.log(`Successfully loaded ${postPath}`);
+            } catch (error) {
+                console.error(`Error loading ${postPath}:`, error);
             }
         }
 
-        // If no markdown files were found
+        // If no posts were loaded
         if (postsContainer.children.length === 0) {
-            postsContainer.innerHTML = '<p>No markdown posts found in the posts directory.</p>';
+            postsContainer.innerHTML = '<p>No posts could be loaded at this time.</p>';
         }
 
     } catch (error) {
-        console.error('Error loading posts:', error);
+        console.error('Error in post loading process:', error);
         postsContainer.innerHTML = `
             <div class="error-message">
-                <p>Unable to load posts. Please ensure:</p>
-                <ul>
-                    <li>The repository is public</li>
-                    <li>The posts directory exists</li>
-                    <li>There are .md files in the posts directory</li>
-                </ul>
+                <p>Unable to load posts. Please ensure all files exist and are accessible.</p>
                 <p>Error details: ${error.message}</p>
             </div>
         `;
@@ -94,15 +88,29 @@ style.textContent = `
         border-radius: 5px;
         margin: 20px 0;
     }
-    .error-message ul {
-        margin: 10px 0;
-        padding-left: 20px;
+    .post {
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .post h3 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+    .post-content {
+        line-height: 1.6;
     }
 `;
 document.head.appendChild(style);
 
-// Wait for DOM to be ready
+// Wait for DOM and marked library to be ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing post loader...'); // Debug log
+    if (typeof marked === 'undefined') {
+        console.error('Marked library not loaded!');
+        return;
+    }
+    console.log('DOM loaded, initializing post loader...');
     loadPosts();
 }); 
