@@ -8,70 +8,50 @@ async function loadPosts() {
     }
 
     try {
-        // Using the raw GitHub content URL with only the current post
-        const baseUrl = 'https://raw.githubusercontent.com/M-Brond/LBB/main/posts/';
-        const posts = [
-            '2024-10-29-mylove.md'  // Updated to match your current post file
-        ];
+        // Using the raw GitHub content URL - note the 'raw.githubusercontent.com' domain
+        const post = {
+            url: 'https://raw.githubusercontent.com/M-Brond/LBB/main/posts/2024-10-29-mylove.md',
+            name: '2024-10-29-mylove.md'
+        };
 
-        for (const postName of posts) {
-            try {
-                const response = await fetch(baseUrl + postName);
-                if (!response.ok) {
-                    console.error(`Failed to load ${postName}`);
-                    continue;
-                }
-                
-                const text = await response.text();
-                
-                const postElement = document.createElement('article');
-                postElement.className = 'post';
-                
-                // Parse front matter if it exists
-                let content = text;
-                let title = postName.replace('.md', '').replace(/-/g, ' ');
-                
-                if (text.startsWith('---')) {
-                    const frontMatterEnd = text.indexOf('---', 3);
-                    if (frontMatterEnd !== -1) {
-                        const frontMatter = text.slice(3, frontMatterEnd);
-                        content = text.slice(frontMatterEnd + 3);
-                        // Extract title from front matter if it exists
-                        const titleMatch = frontMatter.match(/title:\s*"(.+)"/);
-                        if (titleMatch) {
-                            title = titleMatch[1];
-                        }
-                    }
-                }
-                
-                // Add title
-                const titleElement = document.createElement('h3');
-                titleElement.textContent = title;
-                postElement.appendChild(titleElement);
-                
-                // Add content
-                const contentElement = document.createElement('div');
-                contentElement.className = 'post-content';
-                contentElement.innerHTML = marked.parse(content);
-                postElement.appendChild(contentElement);
-                
-                postsContainer.appendChild(postElement);
-                console.log(`Successfully loaded ${postName}`);
-            } catch (error) {
-                console.error(`Error loading ${postName}:`, error);
-            }
-        }
+        console.log(`Attempting to fetch: ${post.url}`); // Debug log
 
-        // If no posts were loaded
-        if (postsContainer.children.length === 0) {
-            postsContainer.innerHTML = '<p>No posts could be loaded at this time.</p>';
+        const response = await fetch(post.url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
         }
+        
+        const text = await response.text();
+        console.log('Successfully fetched content'); // Debug log
+        
+        const postElement = document.createElement('article');
+        postElement.className = 'post';
+        
+        // Add title
+        const titleElement = document.createElement('h3');
+        titleElement.textContent = post.name.replace('.md', '').replace(/-/g, ' ');
+        postElement.appendChild(titleElement);
+        
+        // Add content
+        const contentElement = document.createElement('div');
+        contentElement.className = 'post-content';
+        contentElement.innerHTML = marked.parse(text);
+        postElement.appendChild(contentElement);
+        
+        postsContainer.appendChild(postElement);
+        console.log('Post successfully rendered');
 
     } catch (error) {
         console.error('Error in post loading process:', error);
         postsContainer.innerHTML = `
             <div class="error-message">
-                <p>Unable to load posts. Please ensure all files exist and are accessible.</p>
+                <p>Unable to load posts. Please check:</p>
+                <ul>
+                    <li>The repository is public</li>
+                    <li>The file exists at: posts/2024-10-29-mylove.md</li>
+                    <li>You're on the main branch</li>
+                </ul>
                 <p>Error details: ${error.message}</p>
             </div>
         `;
@@ -109,6 +89,7 @@ document.head.appendChild(style);
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof marked === 'undefined') {
         console.error('Marked library not loaded!');
+        postsContainer.innerHTML = '<p>Error: Marked library not loaded. Please check your HTML includes the marked.js script.</p>';
         return;
     }
     console.log('DOM loaded, initializing post loader...');
