@@ -87,6 +87,7 @@ document.head.appendChild(style);
 
 // Wait for DOM and marked library to be ready
 document.addEventListener('DOMContentLoaded', () => {
+    const postsContainer = document.getElementById('posts-container');
     if (typeof marked === 'undefined') {
         console.error('Marked library not loaded!');
         postsContainer.innerHTML = '<p>Error: Marked library not loaded. Please check your HTML includes the marked.js script.</p>';
