@@ -8,39 +8,41 @@ async function loadPosts() {
     }
 
     try {
-        // Using the raw GitHub content URL - note the 'raw.githubusercontent.com' domain
-        const post = {
-            url: 'https://raw.githubusercontent.com/M-Brond/LBB/main/posts/2024-10-29-mylove.md',
-            name: '2024-10-29-mylove.md'
-        };
-
-        console.log(`Attempting to fetch: ${post.url}`); // Debug log
-
-        const response = await fetch(post.url);
+        const response = await fetch('https://api.github.com/repos/M-Brond/LBB/contents/posts');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
         }
         
-        const text = await response.text();
-        console.log('Successfully fetched content'); // Debug log
+        const files = await response.json();
         
-        const postElement = document.createElement('article');
-        postElement.className = 'post';
-        
-        // Add title
-        const titleElement = document.createElement('h3');
-        titleElement.textContent = post.name.replace('.md', '').replace(/-/g, ' ');
-        postElement.appendChild(titleElement);
-        
-        // Add content
-        const contentElement = document.createElement('div');
-        contentElement.className = 'post-content';
-        contentElement.innerHTML = marked.parse(text);
-        postElement.appendChild(contentElement);
-        
-        postsContainer.appendChild(postElement);
-        console.log('Post successfully rendered');
+        if (!Array.isArray(files)) {
+            throw new TypeError('Expected an array of files');
+        }
+
+        for (const file of files) {
+            if (file.name.endsWith('.md')) {
+                const postResponse = await fetch(file.download_url);
+                const text = await postResponse.text();
+                
+                const postElement = document.createElement('article');
+                postElement.className = 'post';
+                
+                // Add title
+                const titleElement = document.createElement('h3');
+                titleElement.textContent = file.name.replace('.md', '').replace(/-/g, ' ');
+                postElement.appendChild(titleElement);
+                
+                // Add content
+                const contentElement = document.createElement('div');
+                contentElement.className = 'post-content';
+                contentElement.innerHTML = marked.parse(text);
+                postElement.appendChild(contentElement);
+                
+                postsContainer.appendChild(postElement);
+                console.log(`Post ${file.name} successfully rendered`);
+            }
+        }
 
     } catch (error) {
         console.error('Error in post loading process:', error);
@@ -49,7 +51,7 @@ async function loadPosts() {
                 <p>Unable to load posts. Please check:</p>
                 <ul>
                     <li>The repository is public</li>
-                    <li>The file exists at: posts/2024-10-29-mylove.md</li>
+                    <li>The files exist in the posts directory</li>
                     <li>You're on the main branch</li>
                 </ul>
                 <p>Error details: ${error.message}</p>
