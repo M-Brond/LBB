@@ -33,9 +33,27 @@ async function loadPosts() {
                 titleElement.textContent = file.name.replace('.md', '').replace(/-/g, ' ');
                 postElement.appendChild(titleElement);
                 
-                // Add content
+                // Add content - ensure links are secure
                 const contentElement = document.createElement('div');
                 contentElement.className = 'post-content';
+                
+                // Configure marked to ensure all links are HTTPS
+                marked.setOptions({
+                    renderer: (function() {
+                        const renderer = new marked.Renderer();
+                        // Override link renderer to ensure all links use HTTPS
+                        const originalLinkRenderer = renderer.link;
+                        renderer.link = function(href, title, text) {
+                            // Convert HTTP links to HTTPS
+                            if (href && href.startsWith('http:')) {
+                                href = href.replace('http:', 'https:');
+                            }
+                            return originalLinkRenderer.call(this, href, title, text);
+                        };
+                        return renderer;
+                    })()
+                });
+                
                 contentElement.innerHTML = marked.parse(text);
                 postElement.appendChild(contentElement);
                 
@@ -86,6 +104,12 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Add Content-Security-Policy meta tag
+const cspMeta = document.createElement('meta');
+cspMeta.httpEquiv = 'Content-Security-Policy';
+cspMeta.content = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; object-src 'none'; frame-src 'none';";
+document.head.appendChild(cspMeta);
 
 // Wait for DOM and marked library to be ready
 document.addEventListener('DOMContentLoaded', () => {
