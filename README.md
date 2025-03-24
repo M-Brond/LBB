@@ -10,4 +10,4 @@ To add a new post:
 3. Add your content using Markdown formatting
 4. Commit and push to GitHub
 
-The post will automatically appear on the website. 
+The post will automatically appear on the website..
